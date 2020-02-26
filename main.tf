@@ -1,4 +1,5 @@
 resource "azurerm_postgresql_server" "postgresql_server" {
+  count               = var.has_postgresql_server ? 1 : 0
   name                = var.postgresql_server_name
   location            = var.postgresql_location
   resource_group_name = var.postgresql_resource_group_name
@@ -18,6 +19,7 @@ resource "azurerm_postgresql_server" "postgresql_server" {
 }
 
 resource "azurerm_postgresql_database" "postgresql_database" {
+  count                    = var.has_postgresql_database ? 1 : 0
   name                     = var.postgresql_database_name
   resource_group_name      = var.postgresql_resource_group_name
   server_name              = var.postgresql_server_name
@@ -28,23 +30,25 @@ resource "azurerm_postgresql_database" "postgresql_database" {
   
 }
 
-# resource "azurerm_postgresql_virtual_network_rule" "postgresql_virtual_network_rule" {
-#   name                                 = var.postgresql_virtual_network_rule_name
-#   resource_group_name                  = var.postgresql_resource_group_name
-#   server_name                          = var.postgresql_server_name
-#   subnet_id                            = var.postgresql_virtual_network_rule_subnet_id
-#   ignore_missing_vnet_service_endpoint = var.postgresql_virtual_network_rule_ignore_missing_vnet_service_endpoint
-#   depends_on                           = [azurerm_postgresql_server.postgresql_server]
-# }
+resource "azurerm_postgresql_virtual_network_rule" "postgresql_virtual_network_rule" {
+  count                                = var.has_primary_postgresql_virtual_network_rule ? 1 : 0
+  name                                 = var.postgresql_virtual_network_rule_name
+  resource_group_name                  = var.postgresql_resource_group_name
+  server_name                          = var.postgresql_server_name
+  subnet_id                            = var.postgresql_virtual_network_rule_subnet_id
+  ignore_missing_vnet_service_endpoint = var.postgresql_virtual_network_rule_ignore_missing_vnet_service_endpoint
+  depends_on                           = [azurerm_postgresql_server.postgresql_server]
+}
 
-# resource "azurerm_postgresql_firewall_rule" "postgresql_firewall_rule" {
-#   name                = var.postgresql_firewall_rule_name
-#   resource_group_name = var.postgresql_resource_group_name
-#   server_name         = var.postgresql_server_name
-#   start_ip_address    = var.postgresql_firewall_rule_ip_address
-#   end_ip_address      = var.postgresql_firewall_rule_ip_address
-#   depends_on          = [azurerm_postgresql_server.postgresql_server]
-# }
+resource "azurerm_postgresql_firewall_rule" "postgresql_firewall_rule" {
+  count               = var.has_primary_postgresql_firewall_rule ? 1 : 0
+  name                = var.postgresql_firewall_rule_name
+  resource_group_name = var.postgresql_resource_group_name
+  server_name         = var.postgresql_server_name
+  start_ip_address    = var.postgresql_firewall_rule_start_ip_address
+  end_ip_address      = var.postgresql_firewall_rule_end_ip_address
+  depends_on          = [azurerm_postgresql_server.postgresql_server]
+}
 
 resource "null_resource" "postgresql_enable_replication" {
   count      = var.has_postgresql_georeplication ? 1 : 0
@@ -81,24 +85,23 @@ resource "null_resource" "postgresql_create_read_replica" {
 
 }
 
-# resource "azurerm_postgresql_virtual_network_rule" "azurerm_postgresql_virtual_network_rule_replica" {
-#   count                                = var.has_postgresql_georeplication ? 1 : 0
+resource "azurerm_postgresql_virtual_network_rule" "postgresql_replica_virtual_network_rule" {
+  count                                = var.has_postgresql_georeplication && var.has_postgresql_replica_virtual_network_rule ? 1 : 0
+  name                                 = var.postgresql_replica_virtual_network_rule_name
+  resource_group_name                  = var.postgresql_resource_group_name
+  server_name                          = var.postgresql_replica_server_name
+  subnet_id                            = var.postgresql_replica_virtual_network_rule_subnet_id
+  ignore_missing_vnet_service_endpoint = var.postgresql_replica_virtual_network_rule_ignore_missing_vnet_service_endpoint
+  depends_on                           = [null_resource.postgresql_create_read_replica]
+}
 
-#   name                                 = var.aks_internal_vnet_rule_name
-#   resource_group_name                  = var.postgresql_resource_group_name
-#   server_name                          = var.postgresql_replica_server_name
-#   subnet_id                            = data.azurerm_subnet.internal_aks_subnet_dr.id
-#   ignore_missing_vnet_service_endpoint = var.ignore_missing_vnet_service_endpoint
-#   depends_on                           = [null_resource.postgresql_replica]
-# }
+resource "azurerm_postgresql_firewall_rule" "postgresql_replica_firewall_rule" {
+  count               = var.has_postgresql_georeplication && var.has_postgresql_replica_firewall_rule ? 1 : 0
 
-# resource "azurerm_postgresql_firewall_rule" "azurerm_postgresql_firewall_rule_replica" {
-#   count               = var.has_postgresql_georeplication ? 1 : 0
-
-#   name                = var.postgresql_firewall_rule_name
-#   resource_group_name = var.postgresql_resource_group_name
-#   server_name         = var.postgresql_replica_server_name
-#   start_ip_address    = var.postgresql_firewall_rule_ip_address
-#   end_ip_address      = var.postgresql_firewall_rule_ip_address
-#   depends_on          = [null_resource.postgresql_replica]
-# }
+  name                = var.postgresql_firewall_rule_name
+  resource_group_name = var.postgresql_resource_group_name
+  server_name         = var.postgresql_replica_server_name
+  start_ip_address    = var.postgresql_replica_firewall_rule_start_ip_address
+  end_ip_address      = var.postgresql_replica_firewall_rule_end_ip_address
+  depends_on          = [null_resource.postgresql_create_read_replica]
+}

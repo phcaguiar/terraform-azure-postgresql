@@ -14,12 +14,8 @@ The following parameters are mandatory for all resources of this module:
 
 Note: See all variables options in `variables.tf` file.
 
-- ``redis_cache_resource_group_name``: All resources in this module will be created in this resource group. Ex: Infrastructure-Common-EC2-DEV
-- ``redis_cache_name``: Name of the redis cache.
-- ``redis_cache_location``: The location of the redis cache
-- ``redis_cache_capacity``: Redis cache capacity
-- ``redis_cache_family``: Redis cache family
-- ``redis_cache_sku_name``: Redis cache sku name
+- ``postgresql_resource_group_name``: All resources in this module will be created in this resource group. Ex: Infrastructure-Common-EC2-DEV
+- ``postgresql_server_name``: Name of the primary postgresql server.
 
 The following parameters are mandatory to enable geo replication:
 
